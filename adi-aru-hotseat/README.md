@@ -16,12 +16,8 @@ files.** Just open `index.html`.
 2. Double-click `index.html`, or open it in any modern browser (Chrome, Edge, Firefox, Safari).
 3. That's it — there is nothing to install and nothing to build.
 
-> Tip: sound needs a user gesture to start (browser autoplay rules). Just tap **"🎬 Start
-> Game + Enable Sound"** on the opening screen. If a phone's browser is still stubborn about
-> it, a small "🔈 Tap anywhere to enable sound" banner appears — one more tap fixes it.
-
-Your relationship point score is saved to the browser's local storage, so refreshing the
-page (or accidentally closing the tab) won't wipe out the score mid-party.
+> Tip: sound needs a user gesture to start (browser autoplay rules). Just click **"Enter
+> The Show"** on the opening screen and the background music/sound effects will unlock.
 
 ---
 
@@ -29,26 +25,17 @@ page (or accidentally closing the tab) won't wipe out the score mid-party.
 
 1. Sit Adi and Aru in the "hot seat" (any two chairs, ideally facing the audience/laptop screen).
 2. Whoever is hosting reads the question and host commentary out loud, in full dramatic voice.
-3. Adi/Aru answer **out loud** — most rounds don't need typing, they just talk. The A/B/C/D
-   cards under each question (Safe / Honest / Dangerous / Full story) are just flavor —
-   tap one to nudge which style of answer you want, purely for fun.
-4. The host taps **🔒 Lock Answer** for the big dramatic moment — it runs a suspense beat,
-   reveals the host's reaction, and automatically awards that question's points. Use
-   **✨ Reveal** instead if you just want the host commentary without scoring anything.
-5. Invite the audience to smash the reaction buttons (Clap, Laugh, Gasp, Awww, Oooooh,
-   Danger, Confetti, Hearts) — and use **Award Points** / **Deduct Points** any time you want
-   to adjust the score manually.
+3. Adi/Aru answer **out loud** — most rounds don't need typing, they just talk.
+4. The host clicks **Reveal / Host Take** to trigger the suspense sound and the host's
+   reaction line, then invites the audience to smash the reaction buttons (Clap, Laugh,
+   Gasp, Awww, Oooooh, Danger, Confetti, Hearts).
+5. Use **Award Points** / **Deduct Points** based on how good (or chaotic) the answer was.
 6. Use lifelines when a question gets too dangerous. Each lifeline works once per game.
 7. For the **Mind Reader Round**, Adi and Aru privately type their secret answers into the
    two text boxes (masked as you type) — then hit **Reveal Answers** for the big simultaneous
    reveal.
 8. After all 9 rounds (or whenever you want to stop), hit **Final Report** for the closing
    report card and host speech.
-
-All the core controls (Prev / Reveal / Lock Answer / Next, plus the secondary row) live in a
-dock that stays pinned to the bottom of the screen on mobile, so nothing is ever hidden below
-the fold. There's also a floating **➡ Next** button on desktop for quick access, and a
-**❓ Keys** button in the top bar shows the keyboard shortcuts at a glance.
 
 Play the **Full Show** (all 9 rounds, 90 questions) for the whole experience, or jump into
 a single round from the round-select screen if you're short on time.
@@ -62,7 +49,6 @@ While on the main game screen:
 | Key | Action |
 |-----|--------|
 | `Space` | Next question |
-| `Enter` | Lock Answer (dramatic reveal + auto-awards points) |
 | `R` | Reveal / host commentary |
 | `C` | Clap reaction |
 | `L` | Laugh reaction |
@@ -70,9 +56,6 @@ While on the main game screen:
 | `A` | Awww reaction |
 | `H` | Hearts reaction |
 | `M` | Mute / unmute music + sound effects |
-
-A `❓ Keys` button in the top bar also shows this list in-app, so no one has to
-remember it mid-party.
 | `F` | Jump to Final Report |
 
 (Shortcuts are disabled while typing in the secret-answer text boxes.)
