@@ -112,8 +112,35 @@
       sfxOn = on;
     }
 
-    return { play, setMusic, setSfx, startMusic, stopMusic, unlock: getCtx };
+    function unlock() {
+      const c = getCtx();
+      if (c.state === "suspended") c.resume();
+      return c;
+    }
+
+    function isRunning() {
+      return !!ctx && ctx.state === "running";
+    }
+
+    return { play, setMusic, setSfx, startMusic, stopMusic, unlock, isRunning };
   })();
+
+  /* ---------------------------------------------------------
+     PERSISTENCE (score survives a page refresh)
+  --------------------------------------------------------- */
+  const SCORE_KEY = "adiAruHotSeat.score";
+  function loadSavedScore() {
+    const raw = localStorage.getItem(SCORE_KEY);
+    const n = raw ? parseInt(raw, 10) : 0;
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }
+  function saveScore(score) {
+    try {
+      localStorage.setItem(SCORE_KEY, String(score));
+    } catch (e) {
+      /* localStorage unavailable (private browsing etc) — game still works, just won't persist */
+    }
+  }
 
   /* ---------------------------------------------------------
      STATE
@@ -121,15 +148,38 @@
   const state = {
     order: QUESTIONS.slice(),
     currentIndex: 0,
-    score: 0,
+    score: loadSavedScore(),
     musicOn: true,
     sfxOn: true,
     revealed: false,
+    locked: false,
     roundFilter: null,
     lifelinesUsed: {},
     reactionCounts: { clap: 0, laugh: 0, gasp: 0, aww: 0, ooh: 0, danger: 0, confetti: 0, hearts: 0 },
   };
   LIFELINES.forEach((l) => (state.lifelinesUsed[l.id] = false));
+
+  /* ---------------------------------------------------------
+     EXTRA HOST COMMENTARY POOLS (transitions + random banter)
+  --------------------------------------------------------- */
+  const TRANSITION_LINES = [
+    "Agla sawaal tayyar hai…",
+    "Studio mein sannata chha gaya hai…",
+    "Adi and Aru, dhyaan se kheliyega…",
+    "The next question is loading, and it is not being gentle.",
+    "Lights dim. Hearts race. Here comes the next one.",
+  ];
+  const RANDOM_BANTER = [
+    "Aru, this one is risky.",
+    "Adi, think carefully. This answer has consequences.",
+    "Audience, please control your expressions.",
+    "Relationship points are on the line.",
+    "This question can either win hearts or create a WhatsApp discussion later.",
+    "Scorekeeper, are we ready? Let's lock this in.",
+  ];
+  function randomFrom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
 
   /* ---------------------------------------------------------
      DOM SHORTCUTS
@@ -147,6 +197,7 @@
   function showScreen(name) {
     Object.values(screens).forEach((s) => s.classList.remove("active"));
     screens[name].classList.add("active");
+    document.body.classList.toggle("in-game", name === "game");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -297,7 +348,7 @@
     return idx;
   }
 
-  function renderLadder() {
+  function renderLadder(animate) {
     const list = $("ladderList");
     list.innerHTML = "";
     const curIdx = currentTierIndex();
@@ -309,6 +360,19 @@
       list.appendChild(li);
     });
     $("scoreValue").textContent = state.score;
+    $("topScoreValue").textContent = state.score;
+    $("topScoreTier").textContent = POINT_LADDER[curIdx].label;
+    saveScore(state.score);
+
+    if (animate) {
+      const scoreDisplay = document.querySelector(".score-display");
+      const topScore = $("topScore");
+      [scoreDisplay, topScore].forEach((el) => {
+        el.classList.remove("pop");
+        void el.offsetWidth;
+        el.classList.add("pop");
+      });
+    }
   }
 
   /* ---------------------------------------------------------
@@ -405,9 +469,12 @@
     const q = currentQuestion();
     if (!q) return;
     state.revealed = false;
+    state.locked = false;
 
     const round = ROUNDS.find((r) => r.id === q.round);
-    $("roundBanner").textContent = `Round ${q.round} · ${round ? round.name : q.category} — Question ${state.currentIndex + 1} of ${state.order.length}`;
+    $("roundBanner").textContent = `Round ${q.round} · ${round ? round.name : q.category}`;
+    $("progressLabel").textContent = `Question ${state.currentIndex + 1} / ${state.order.length}`;
+    $("progressBar").style.width = Math.round(((state.currentIndex + 1) / state.order.length) * 100) + "%";
 
     $("vibeBadge").textContent = q.vibe;
     $("modeBadge").textContent = MODE_LABEL[q.answerMode] || q.answerMode;
@@ -427,11 +494,29 @@
       secretPanel.classList.add("hidden");
     }
 
+    document.querySelectorAll("#optionGrid .option-card").forEach((c) => c.classList.remove("chosen"));
+
+    const btnLock = $("btnLock");
+    btnLock.disabled = false;
+    btnLock.textContent = "🔒 Lock Answer (Enter)";
+
     // little glow pulse for the new question
     const box = $("questionBox");
+    box.classList.remove("fade-out", "suspense");
     box.style.animation = "none";
     void box.offsetWidth;
     box.style.animation = "";
+  }
+
+  function runSuspense(onDone) {
+    const box = $("questionBox");
+    box.classList.add("suspense");
+    SoundEngine.play("drumroll");
+    setHostText("Lock kiya jaaye… suspense building…");
+    setTimeout(() => {
+      box.classList.remove("suspense");
+      onDone();
+    }, 750);
   }
 
   function revealCurrent() {
@@ -439,9 +524,7 @@
     if (!q) return;
     const btn = $("btnReveal");
     btn.disabled = true;
-    SoundEngine.play("drumroll");
-    setHostText("Lock kiya jaaye… suspense building…");
-    setTimeout(() => {
+    runSuspense(() => {
       state.revealed = true;
       setHostText(q.hostReveal);
       SoundEngine.play(q.audienceCue === "confetti" ? "confetti" : q.audienceCue);
@@ -451,7 +534,35 @@
         if (reaction) spawnEmojiBurst(reaction.icon, 10);
       }
       btn.disabled = false;
-    }, 750);
+      if (Math.random() < 0.4) setTimeout(() => setHostText(randomFrom(RANDOM_BANTER)), 2200);
+    });
+  }
+
+  function lockAnswer() {
+    const q = currentQuestion();
+    if (!q || state.locked) return;
+    state.locked = true;
+    const lockBtn = $("btnLock");
+    lockBtn.disabled = true;
+    runSuspense(() => {
+      state.revealed = true;
+      lockBtn.textContent = "🔒 Answer Locked";
+      setHostText(q.hostReveal);
+      const before = currentTierIndex();
+      state.score += q.points;
+      renderLadder(true);
+      SoundEngine.play("chime");
+      SoundEngine.play(q.audienceCue === "confetti" ? "confetti" : q.audienceCue);
+      const reaction = REACTIONS.find((r) => r.id === q.audienceCue);
+      if (reaction) spawnEmojiBurst(reaction.icon, 10);
+      if (currentTierIndex() > before) {
+        spawnConfetti(50);
+        SoundEngine.play("confetti");
+        setTimeout(() => setHostText(`Level up! You've just reached "${POINT_LADDER[currentTierIndex()].label}"!`), 1400);
+      } else {
+        setTimeout(() => setHostText(`Locked in! +${q.points} Relationship Points. ${q.hostReveal}`), 1400);
+      }
+    });
   }
 
   function revealSecret() {
@@ -469,18 +580,37 @@
     }, 700);
   }
 
-  function goNext() {
-    if (state.currentIndex < state.order.length - 1) {
-      state.currentIndex++;
-      renderQuestion();
-    } else {
+  let transitioning = false;
+  function transitionToIndex(newIndex, isLast) {
+    if (transitioning) return;
+    if (isLast) {
       setHostText("That's the last question of this round! Head to the Final Report whenever you're ready.");
+      return;
     }
+    transitioning = true;
+    const box = $("questionBox");
+    const overlay = $("transitionOverlay");
+    const overlayText = $("transitionText");
+    box.classList.add("fade-out");
+    overlayText.textContent = randomFrom(TRANSITION_LINES);
+    overlay.classList.remove("hidden");
+    SoundEngine.play("drumroll");
+    setTimeout(() => {
+      state.currentIndex = newIndex;
+      renderQuestion();
+      overlay.classList.add("hidden");
+      box.classList.remove("fade-out");
+      transitioning = false;
+    }, 700);
+  }
+
+  function goNext() {
+    const isLast = state.currentIndex >= state.order.length - 1;
+    transitionToIndex(state.currentIndex + 1, isLast);
   }
   function goPrev() {
-    if (state.currentIndex > 0) {
-      state.currentIndex--;
-      renderQuestion();
+    if (state.currentIndex > 0 && !transitioning) {
+      transitionToIndex(state.currentIndex - 1, false);
     }
   }
   function shuffleQuestions() {
@@ -500,7 +630,7 @@
     const before = currentTierIndex();
     state.score += q.points;
     SoundEngine.play("chime");
-    renderLadder();
+    renderLadder(true);
     if (currentTierIndex() > before) {
       spawnConfetti(50);
       SoundEngine.play("confetti");
@@ -512,13 +642,13 @@
   function deductPoints() {
     state.score = Math.max(0, state.score - 50);
     SoundEngine.play("buzz");
-    renderLadder();
+    renderLadder(true);
     setHostText("Ohhh… we have a difference of opinion. -50 points, tough crowd tonight.");
   }
   function resetScore() {
     if (!confirm("Reset Relationship Points back to zero?")) return;
     state.score = 0;
-    renderLadder();
+    renderLadder(true);
     setHostText("A clean slate. Fresh start. Let's build those points back up.");
   }
   function restartGame() {
@@ -526,9 +656,11 @@
     state.score = 0;
     state.currentIndex = 0;
     state.roundFilter = null;
+    state.locked = false;
     state.order = QUESTIONS.slice();
     LIFELINES.forEach((l) => (state.lifelinesUsed[l.id] = false));
     Object.keys(state.reactionCounts).forEach((k) => (state.reactionCounts[k] = 0));
+    renderLadder(); // the top bar's score readout is visible on every screen, so refresh it here too
     showScreen("rounds");
     renderRoundGrid();
   }
@@ -622,13 +754,67 @@
   }
 
   /* ---------------------------------------------------------
+     SOUND UNLOCK HELPERS (mobile autoplay can be stubborn)
+  --------------------------------------------------------- */
+  function attemptSoundStart() {
+    SoundEngine.unlock();
+    SoundEngine.startMusic();
+    SoundEngine.play("chime");
+    setTimeout(() => {
+      if (!SoundEngine.isRunning()) {
+        $("soundNag").classList.remove("hidden");
+      } else {
+        $("soundNag").classList.add("hidden");
+      }
+    }, 500);
+  }
+
+  function wireSoundUnlockFallback() {
+    const nag = $("soundNag");
+    nag.addEventListener("click", () => {
+      attemptSoundStart();
+    });
+    // Extra safety net: some mobile browsers only unlock audio on the very
+    // first tap anywhere on the page, not necessarily on a specific button.
+    const tryUnlockOnce = () => {
+      if (SoundEngine.isRunning()) {
+        document.removeEventListener("click", tryUnlockOnce);
+        document.removeEventListener("touchend", tryUnlockOnce);
+        return;
+      }
+      SoundEngine.unlock();
+      if (state.musicOn) SoundEngine.startMusic();
+    };
+    document.addEventListener("click", tryUnlockOnce);
+    document.addEventListener("touchend", tryUnlockOnce);
+  }
+
+  /* ---------------------------------------------------------
+     A/B/C/D ANSWER-STYLE OPTION CARDS (decorative flavor prompts)
+  --------------------------------------------------------- */
+  const STYLE_LINES = {
+    safe: "Playing it safe! A responsible, diplomatic answer. Respectable.",
+    honest: "Full honesty mode. No filter. This is where good television comes from.",
+    dangerous: "Ooh, the dangerous option. Bold choice. The audience is delighted.",
+    story: "The full story it is. Everybody settle in.",
+  };
+  function wireOptionGrid() {
+    document.querySelectorAll("#optionGrid .option-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        document.querySelectorAll("#optionGrid .option-card").forEach((c) => c.classList.remove("chosen"));
+        card.classList.add("chosen");
+        SoundEngine.play("click");
+        setHostText(STYLE_LINES[card.dataset.style] || "Noted.");
+      });
+    });
+  }
+
+  /* ---------------------------------------------------------
      EVENT WIRING
   --------------------------------------------------------- */
   function wireEvents() {
     $("btnEnterShow").addEventListener("click", () => {
-      SoundEngine.unlock();
-      SoundEngine.startMusic();
-      SoundEngine.play("chime");
+      attemptSoundStart();
       showScreen("contestants");
     });
     $("btnToWelcome").addEventListener("click", () => {
@@ -645,7 +831,9 @@
 
     $("btnPrev").addEventListener("click", goPrev);
     $("btnNext").addEventListener("click", goNext);
+    $("fabNext").addEventListener("click", goNext);
     $("btnReveal").addEventListener("click", revealCurrent);
+    $("btnLock").addEventListener("click", lockAnswer);
     $("btnSkip").addEventListener("click", () => {
       setHostText("Skipped! Some questions live to haunt another day.");
       goNext();
@@ -661,17 +849,28 @@
 
     $("musicToggle").addEventListener("click", toggleMusic);
     $("sfxToggle").addEventListener("click", toggleSfx);
+    $("helpToggle").addEventListener("click", () => $("shortcutsPanel").classList.toggle("hidden"));
+
+    wireOptionGrid();
+    wireSoundUnlockFallback();
 
     document.addEventListener("keydown", (e) => {
       const tag = document.activeElement.tagName;
       if (tag === "TEXTAREA" || tag === "INPUT") return;
       if (!screens.game.classList.contains("active")) return;
+      if (tag === "BUTTON" && e.key === "Enter") return; // avoid double-firing native button activation
 
-      switch (e.key.toLowerCase()) {
+      switch (e.key) {
         case " ":
           e.preventDefault();
           goNext();
           break;
+        case "Enter":
+          e.preventDefault();
+          lockAnswer();
+          break;
+      }
+      switch (e.key.toLowerCase()) {
         case "r":
           revealCurrent();
           break;
@@ -707,6 +906,7 @@
     spawnParticles();
     playIntroLines();
     wireEvents();
+    renderLadder(); // reflect any score restored from localStorage right away
   }
 
   document.addEventListener("DOMContentLoaded", init);

@@ -25,11 +25,31 @@
     <span class="brand-icon">👑</span>
     <span class="brand-text">Relationship Hot Seat</span>
   </div>
+  <div class="top-score" id="topScore">
+    <span class="top-score-icon">💛</span>
+    <span id="topScoreValue">0</span>
+    <span class="top-score-tier" id="topScoreTier">100 Love Points</span>
+  </div>
   <div class="top-controls">
+    <button class="icon-toggle" id="helpToggle" title="Keyboard shortcuts">❓ Keys</button>
     <button class="icon-toggle" id="musicToggle" title="Toggle background music (M)">🎵 Music</button>
     <button class="icon-toggle" id="sfxToggle" title="Toggle sound effects">🔊 SFX</button>
   </div>
 </div>
+
+<div class="shortcuts-panel hidden" id="shortcutsPanel">
+  <h4>Keyboard Shortcuts</h4>
+  <ul>
+    <li><b>Space</b> Next question</li>
+    <li><b>Enter</b> Lock Answer</li>
+    <li><b>R</b> Reveal / Host take</li>
+    <li><b>C / L / G / A / H</b> Clap / Laugh / Gasp / Awww / Hearts</li>
+    <li><b>M</b> Mute / unmute</li>
+    <li><b>F</b> Final report</li>
+  </ul>
+</div>
+
+<div class="sound-nag hidden" id="soundNag">🔈 Tap anywhere to enable the show's sound</div>
 
 <main id="app">
 
@@ -42,7 +62,8 @@
         <p class="show-tagline" id="taglineText"></p>
       </div>
       <div class="intro-lines" id="introLines"></div>
-      <button class="btn btn-gold btn-lg" id="btnEnterShow">Enter The Show</button>
+      <button class="btn btn-gold btn-lg btn-pulse" id="btnEnterShow">🎬 Start Game + Enable Sound</button>
+      <p class="sound-hint">Tap once to unlock the suspense theme &amp; sound effects — browsers require it.</p>
     </div>
   </section>
 
@@ -101,15 +122,29 @@
       <!-- Center: main stage -->
       <div class="center-stage">
         <div class="round-banner" id="roundBanner">Round 1 · The Beginning</div>
+        <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+        <div class="progress-label" id="progressLabel">Question 1 / 90</div>
 
-        <div class="question-box" id="questionBox">
-          <div class="question-meta">
-            <span class="badge badge-vibe" id="vibeBadge">funny</span>
-            <span class="badge badge-mode" id="modeBadge">both</span>
-            <span class="badge badge-points" id="pointsBadge">+100</span>
+        <div class="question-stage">
+          <div class="question-box" id="questionBox">
+            <div class="question-meta">
+              <span class="badge badge-vibe" id="vibeBadge">funny</span>
+              <span class="badge badge-mode" id="modeBadge">both</span>
+              <span class="badge badge-points" id="pointsBadge">+100</span>
+            </div>
+            <div class="question-text" id="questionText">Loading question…</div>
+            <div class="answer-target" id="answerTarget"></div>
+
+            <div class="option-grid" id="optionGrid">
+              <div class="option-card" data-style="safe"><span class="opt-letter">A</span><span class="opt-text">Safe answer</span></div>
+              <div class="option-card" data-style="honest"><span class="opt-letter">B</span><span class="opt-text">Honest answer</span></div>
+              <div class="option-card" data-style="dangerous"><span class="opt-letter">C</span><span class="opt-text">Dangerous answer</span></div>
+              <div class="option-card" data-style="story"><span class="opt-letter">D</span><span class="opt-text">Full story answer</span></div>
+            </div>
           </div>
-          <div class="question-text" id="questionText">Loading question…</div>
-          <div class="answer-target" id="answerTarget"></div>
+          <div class="transition-overlay hidden" id="transitionOverlay">
+            <div class="transition-text" id="transitionText"></div>
+          </div>
         </div>
 
         <!-- Host commentary -->
@@ -135,22 +170,6 @@
             <div class="reveal-col"><h4>Adi said:</h4><p id="revealAdiText"></p></div>
             <div class="reveal-col"><h4>Aru said:</h4><p id="revealAruText"></p></div>
           </div>
-        </div>
-
-        <!-- Main controls -->
-        <div class="controls-row">
-          <button class="btn btn-outline" id="btnPrev">⬅ Previous</button>
-          <button class="btn btn-gold" id="btnReveal">✨ Reveal / Host Take (R)</button>
-          <button class="btn btn-outline" id="btnNext">Next ➡ (Space)</button>
-        </div>
-        <div class="controls-row controls-row-secondary">
-          <button class="btn btn-mini" id="btnSkip">Skip</button>
-          <button class="btn btn-mini" id="btnShuffle">🔀 Shuffle</button>
-          <button class="btn btn-mini" id="btnAward">➕ Award Points</button>
-          <button class="btn btn-mini" id="btnDeduct">➖ Deduct Points</button>
-          <button class="btn btn-mini" id="btnResetScore">Reset Score</button>
-          <button class="btn btn-mini" id="btnRestart">🔁 Restart Game</button>
-          <button class="btn btn-mini btn-final" id="btnFinal">🏁 Final Report (F)</button>
         </div>
 
         <!-- Lifelines -->
@@ -185,6 +204,29 @@
   </section>
 
 </main>
+
+<!-- Sticky control dock: lives outside any .screen so it is never affected by
+     screen-transition transforms, and always reachable without scrolling. -->
+<div class="control-dock" id="controlDock">
+  <div class="controls-row">
+    <button class="btn btn-outline" id="btnPrev">⬅ Prev</button>
+    <button class="btn btn-outline" id="btnReveal">✨ Reveal (R)</button>
+    <button class="btn btn-lock" id="btnLock">🔒 Lock Answer (Enter)</button>
+    <button class="btn btn-outline" id="btnNext">Next ➡ (Space)</button>
+  </div>
+  <div class="controls-row controls-row-secondary">
+    <button class="btn btn-mini" id="btnSkip">Skip</button>
+    <button class="btn btn-mini" id="btnShuffle">🔀 Shuffle</button>
+    <button class="btn btn-mini" id="btnAward">➕ Award Points</button>
+    <button class="btn btn-mini" id="btnDeduct">➖ Deduct Points</button>
+    <button class="btn btn-mini" id="btnResetScore">Reset Score</button>
+    <button class="btn btn-mini" id="btnRestart">🔁 Restart Game</button>
+    <button class="btn btn-mini btn-final" id="btnFinal">🏁 Final Report (F)</button>
+  </div>
+</div>
+
+<!-- Floating always-visible "Next Question" action button -->
+<button class="fab-next" id="fabNext" title="Next Question (Space)">➡<span>Next</span></button>
 
 <footer class="kbd-hint" id="kbdHint">
   Space: Next &nbsp;·&nbsp; R: Reveal &nbsp;·&nbsp; C/L/G/A/H: Reactions &nbsp;·&nbsp; M: Mute &nbsp;·&nbsp; F: Final Report
