@@ -14,6 +14,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  administration: write
 
 concurrency:
   group: 'pages-adi-aru-game'
@@ -31,6 +32,8 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          enablement: true
 
       - name: Upload game folder as Pages artifact
         uses: actions/upload-pages-artifact@v3
