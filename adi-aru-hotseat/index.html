@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>Adi &amp; Aru: The Ultimate Relationship Hot Seat</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- Ambient stage decor, present behind every screen -->
+<div class="stage-bg" aria-hidden="true">
+  <div class="spotlight spotlight-1"></div>
+  <div class="spotlight spotlight-2"></div>
+  <div class="spotlight spotlight-3"></div>
+  <div class="stage-particles" id="particles"></div>
+</div>
+
+<!-- Floating layers for confetti / hearts / emoji reactions -->
+<div class="fx-layer" id="fxLayer" aria-hidden="true"></div>
+
+<!-- Top control bar (audio toggles) -->
+<div class="top-bar">
+  <div class="brand">
+    <span class="brand-icon">👑</span>
+    <span class="brand-text">Relationship Hot Seat</span>
+  </div>
+  <div class="top-controls">
+    <button class="icon-toggle" id="musicToggle" title="Toggle background music (M)">🎵 Music</button>
+    <button class="icon-toggle" id="sfxToggle" title="Toggle sound effects">🔊 SFX</button>
+  </div>
+</div>
+
+<main id="app">
+
+  <!-- ============ SCREEN 1: INTRO ============ -->
+  <section class="screen active" id="screen-intro">
+    <div class="intro-wrap">
+      <div class="show-logo" aria-hidden="true">
+        <svg viewBox="0 0 220 220" class="show-logo-svg">
+          <defs>
+            <linearGradient id="logoGold" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#fff3cf" />
+              <stop offset="50%" stop-color="#f7cf6b" />
+              <stop offset="100%" stop-color="#c9992e" />
+            </linearGradient>
+          </defs>
+          <polygon points="110,6 214,60 214,160 110,214 6,160 6,60" fill="none" stroke="url(#logoGold)" stroke-width="4"/>
+          <polygon points="110,30 192,72 192,148 110,190 28,148 28,72" fill="none" stroke="url(#logoGold)" stroke-width="1.5" opacity="0.6"/>
+          <text x="110" y="102" text-anchor="middle" class="show-logo-amp" fill="url(#logoGold)">A&amp;A</text>
+          <text x="110" y="130" text-anchor="middle" class="show-logo-sub" fill="url(#logoGold)">HOT SEAT</text>
+        </svg>
+      </div>
+      <div class="glow-title">
+        <h1 class="show-title">Adi <span class="amp">&amp;</span> Aru</h1>
+        <h2 class="show-subtitle">The Ultimate Relationship Hot Seat</h2>
+        <p class="show-tagline" id="taglineText"></p>
+      </div>
+      <div class="intro-lines" id="introLines"></div>
+      <button class="btn btn-gold btn-lg" id="btnEnterShow">Enter The Show</button>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 2: CONTESTANTS ============ -->
+  <section class="screen" id="screen-contestants">
+    <h2 class="screen-heading">Tonight's Contestants</h2>
+    <div class="contestant-row">
+      <div class="contestant-card card-adi">
+        <div class="contestant-glow"></div>
+        <div class="contestant-emoji">🤵</div>
+        <div class="contestant-name">Adi</div>
+        <div class="contestant-role">Contestant No. 1</div>
+      </div>
+      <div class="vs-badge">VS<br /><span>&amp; Forever</span></div>
+      <div class="contestant-card card-aru">
+        <div class="contestant-glow"></div>
+        <div class="contestant-emoji">👰</div>
+        <div class="contestant-name">Aru</div>
+        <div class="contestant-role">Contestant No. 2</div>
+      </div>
+    </div>
+    <button class="btn btn-gold btn-lg" id="btnToWelcome">Meet Your Host</button>
+  </section>
+
+  <!-- ============ SCREEN 3: HOST WELCOME ============ -->
+  <section class="screen" id="screen-welcome">
+    <div class="host-box host-box-big">
+      <div class="host-avatar">🎙️</div>
+      <p class="host-text" id="welcomeText">Welcome...</p>
+    </div>
+    <button class="btn btn-gold btn-lg" id="btnToRounds">Choose Round &amp; Begin</button>
+  </section>
+
+  <!-- ============ SCREEN 4: ROUND SELECT ============ -->
+  <section class="screen" id="screen-rounds">
+    <h2 class="screen-heading">Select A Round</h2>
+    <p class="screen-sub">Play in order for the full experience, or jump anywhere you like.</p>
+    <div class="round-grid" id="roundGrid"></div>
+    <div class="score-preview" id="scorePreviewRounds"></div>
+  </section>
+
+  <!-- ============ SCREEN 5: MAIN GAME ============ -->
+  <section class="screen" id="screen-game">
+    <div class="game-layout">
+
+      <!-- Left: score ladder -->
+      <aside class="ladder-panel" id="ladderPanel">
+        <h3>Love Ladder</h3>
+        <ul class="ladder-list" id="ladderList"></ul>
+        <div class="score-display">
+          <div class="score-value" id="scoreValue">0</div>
+          <div class="score-label">Relationship Points</div>
+        </div>
+      </aside>
+
+      <!-- Center: main stage -->
+      <div class="center-stage">
+        <div class="round-banner" id="roundBanner">Round 1 · The Beginning</div>
+
+        <div class="question-box" id="questionBox">
+          <div class="question-meta">
+            <span class="badge badge-vibe" id="vibeBadge">funny</span>
+            <span class="badge badge-mode" id="modeBadge">both</span>
+            <span class="badge badge-points" id="pointsBadge">+100</span>
+          </div>
+          <div class="question-text" id="questionText">Loading question…</div>
+          <div class="answer-target" id="answerTarget"></div>
+        </div>
+
+        <!-- Host commentary -->
+        <div class="host-box" id="hostBox">
+          <div class="host-avatar">🎙️</div>
+          <p class="host-text" id="hostText">Lock kiya jaaye?</p>
+        </div>
+
+        <!-- Secret answer mode -->
+        <div class="secret-panel hidden" id="secretPanel">
+          <div class="secret-cols">
+            <div class="secret-col">
+              <label for="secretAdi">Adi's Secret Answer</label>
+              <textarea id="secretAdi" rows="2" placeholder="Type secretly... don't peek, Aru!"></textarea>
+            </div>
+            <div class="secret-col">
+              <label for="secretAru">Aru's Secret Answer</label>
+              <textarea id="secretAru" rows="2" placeholder="Type secretly... don't peek, Adi!"></textarea>
+            </div>
+          </div>
+          <button class="btn btn-gold" id="btnRevealSecret">🔮 Reveal Answers</button>
+          <div class="secret-reveal hidden" id="secretRevealBox">
+            <div class="reveal-col"><h4>Adi said:</h4><p id="revealAdiText"></p></div>
+            <div class="reveal-col"><h4>Aru said:</h4><p id="revealAruText"></p></div>
+          </div>
+        </div>
+
+        <!-- Main controls -->
+        <div class="controls-row">
+          <button class="btn btn-outline" id="btnPrev">⬅ Previous</button>
+          <button class="btn btn-gold" id="btnReveal">✨ Reveal / Host Take (R)</button>
+          <button class="btn btn-outline" id="btnNext">Next ➡ (Space)</button>
+        </div>
+        <div class="controls-row controls-row-secondary">
+          <button class="btn btn-mini" id="btnSkip">Skip</button>
+          <button class="btn btn-mini" id="btnShuffle">🔀 Shuffle</button>
+          <button class="btn btn-mini" id="btnAward">➕ Award Points</button>
+          <button class="btn btn-mini" id="btnDeduct">➖ Deduct Points</button>
+          <button class="btn btn-mini" id="btnResetScore">Reset Score</button>
+          <button class="btn btn-mini" id="btnRestart">🔁 Restart Game</button>
+          <button class="btn btn-mini btn-final" id="btnFinal">🏁 Final Report (F)</button>
+        </div>
+
+        <!-- Lifelines -->
+        <div class="lifeline-row" id="lifelineRow"></div>
+      </div>
+
+      <!-- Right: audience reactions -->
+      <aside class="reaction-panel" id="reactionPanel">
+        <h3>Audience Reactions</h3>
+        <div class="reaction-grid" id="reactionGrid"></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 6: FINAL REPORT ============ -->
+  <section class="screen" id="screen-final">
+    <h2 class="screen-heading gold-shimmer">Final Report Card</h2>
+    <div class="final-score">
+      <div class="final-score-value" id="finalScoreValue">0</div>
+      <div class="final-score-label" id="finalScoreLabel">Relationship Points</div>
+    </div>
+    <div class="report-grid" id="reportGrid"></div>
+    <div class="host-box host-box-big">
+      <div class="host-avatar">🎙️</div>
+      <p class="host-text" id="closingSpeech"></p>
+    </div>
+    <div class="final-lines">
+      <p>Thanks for playing, Adi &amp; Aru.</p>
+      <p class="gold-shimmer">Love, laughter, drama — locked forever.</p>
+    </div>
+    <button class="btn btn-gold btn-lg" id="btnPlayAgain">Play Again</button>
+  </section>
+
+</main>
+
+<footer class="kbd-hint" id="kbdHint">
+  Space: Next &nbsp;·&nbsp; R: Reveal &nbsp;·&nbsp; C/L/G/A/H: Reactions &nbsp;·&nbsp; M: Mute &nbsp;·&nbsp; F: Final Report
+</footer>
+
+<script src="questions.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
